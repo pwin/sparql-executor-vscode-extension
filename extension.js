@@ -106,13 +106,17 @@ const renderAsTable = (results, context) => {
   const stylesheetHref = cssFilePath.with({ scheme: 'vscode-resource' })
   const html = fs.readFileSync(htmlFilePath.fsPath, 'utf8')
   const template = handlebars.compile(html)
+  const number = results.length
 
-  panel.webview.html = template({ htmlTable, stylesheetHref })
+  panel.webview.html = template({ number, htmlTable, stylesheetHref })
   panel.reveal()
 }
 
 const renderAsJson = (results) => {
-  const outputChannel = vscode.window.createOutputChannel(`SPARQL Results`)
+  const yourDate = new Date()
+  yourDate.toISOString()  //.split('T')[0]
+  const outputChannel = vscode.window.createOutputChannel(`SPARQL Results ` + yourDate.toISOString())
+  outputChannel.append(["count: " + results.length + " records."])
   outputChannel.append(JSON.stringify(results, null, '\t'))
   outputChannel.show(true)
 }
@@ -193,7 +197,6 @@ const executeSparqlQuery = async (context) => {
   }
 
   vscode.window.setStatusBarMessage('Executing SPARQL query...')
-
   let responseJson
 
   try {
@@ -207,12 +210,25 @@ const executeSparqlQuery = async (context) => {
 
   const response = JSON.parse(responseJson)
   const values = []
+// this is looking after ASK queries
+if (!response) {
+  vscode.window.showInformationMessage('No results')
+  return
+}
+else
+if ("boolean" in response)
+  { const newBinding = {}
+    newBinding['boolean'] = response.boolean
+    values.push(newBinding)
+  }
 
-  if (!response || !response.results || !response.results.bindings || !response.results.bindings.length) {
+else
+{
+  if (!response || !response.results || !response.results.bindings || !response.results.bindings.length ) {
     vscode.window.showInformationMessage('No results')
     return
   }
-
+ 
   _.each(response.results.bindings, (binding) => {
     const newBinding = {}
 
@@ -222,6 +238,7 @@ const executeSparqlQuery = async (context) => {
 
     values.push(newBinding)
   })
+}
 
   if (output === OUTPUT.TABLE) {
     renderAsTable(values, context)
@@ -229,6 +246,7 @@ const executeSparqlQuery = async (context) => {
     renderAsJson(values)
   }
 }
+
 
 /**
  * @param {vscode.ExtensionContext} context

@@ -1,12 +1,12 @@
 table {
-  border: 1px solid #FFFFFF;
+  border: 1px solid #FF6961;
   text-align: left;
   border-collapse: collapse;
 }
 
 table td,
 table th {
-  border: 1px solid #FFFFFF;
+  border: 1px solid #FF6961;
   padding: 5px;
 }
 
@@ -17,5 +17,5 @@ table tbody td {
 table thead th {
   font-size: 15px;
   font-weight: bold;
-  color: #FFFFFF;
+  color: #FF6961;
 }
