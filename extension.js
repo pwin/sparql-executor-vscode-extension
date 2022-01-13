@@ -22,6 +22,7 @@ const AUTH_TYPE = {
 const OUTPUT = {
   JSON: 'json',
   TABLE: 'table',
+  CSV: 'csv',
 }
 
 const COMMAND = {
@@ -112,6 +113,30 @@ const renderAsTable = (results, context) => {
   panel.reveal()
 }
 
+
+function SimpleConvertToCSV(objArray) {
+  var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
+  var str = '';
+  for (var i = 0; i < array.length; i++) {
+      var line = '';
+      for (var index in array[i]) {
+          if (line != '') line += ','
+          line += array[i][index];
+      }
+      str += line + '\r\n';
+  }
+  return str;
+}
+
+
+const renderAsCSVdoc = (results) =>
+{
+  var docContent = SimpleConvertToCSV(results);
+  vscode.workspace.openTextDocument({content: docContent}).then(doc => {
+    vscode.window.showTextDocument(doc);
+  });
+}
+
 const renderAsJson = (results) => {
   const yourDate = new Date()
   yourDate.toISOString()  //.split('T')[0]
@@ -172,6 +197,7 @@ const executeSparqlQuery = async (context) => {
   } = endpointConfiguration
   const query = vscode.window.activeTextEditor.document.getText()
   const queryType = getSparqlQueryType(query)
+  vscode.window.setStatusBarMessage('Executing SPARQL query...' + queryType )
 
   // If we were unable to parse the SPARQL query to get the query type, then stop.
   if (!queryType) {
@@ -201,6 +227,9 @@ const executeSparqlQuery = async (context) => {
 
   try {
     responseJson = await request(options)
+    const outputChannel = vscode.window.createOutputChannel(`SPARQL Immediate Results `)
+    outputChannel.append(responseJson)
+    outputChannel.show(true)    
   } catch (error) {
     vscode.window.showErrorMessage(`Something went wrong when executing the SPARQL query: '${error}'`)
     return
@@ -208,10 +237,11 @@ const executeSparqlQuery = async (context) => {
     vscode.window.setStatusBarMessage(undefined)
   }
 
+
   const response = JSON.parse(responseJson)
   const values = []
-// this is looking after ASK queries
-if (!response) {
+
+  if (!response) {
   vscode.window.showInformationMessage('No results')
   return
 }
@@ -242,7 +272,11 @@ else
 
   if (output === OUTPUT.TABLE) {
     renderAsTable(values, context)
-  } else {
+  } 
+  else if (output === OUTPUT.CSV) {
+    renderAsCSVdoc(values)
+  }
+  else {
     renderAsJson(values)
   }
 }
